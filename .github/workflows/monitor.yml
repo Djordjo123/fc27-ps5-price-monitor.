@@ -33,7 +33,59 @@ jobs:
           cat requirements.txt
 
       - name: Install dependencies
+      
         run: pip install -r requirements.txt
+
+        
+      - name: Test Telegram
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import urllib.parse
+          import urllib.request
+          import urllib.error
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+          if not token or not chat_id:
+              raise SystemExit(
+                  "Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID secret"
+              )
+
+          data = urllib.parse.urlencode({
+              "chat_id": chat_id,
+              "text": "FC 27 monitor: Telegram test successful."
+          }).encode()
+
+          request = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=data
+          )
+
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  result = json.load(response)
+          except urllib.error.HTTPError as exc:
+              print(f"Telegram HTTP error: {exc.code}")
+              print(exc.read().decode(errors="replace"))
+              raise SystemExit(1)
+          except urllib.error.URLError as exc:
+              print(f"Telegram connection failed: {exc.reason}")
+              raise SystemExit(1)
+
+          if not result.get("ok"):
+              print(f"Telegram API rejected the message: {result}")
+              raise SystemExit(1)
+
+          print("Telegram test message sent successfully.")
+          PY
+
 
       - name: Run price monitor
         env:
