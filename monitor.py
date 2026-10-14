@@ -55,7 +55,8 @@ async def main():
     now = datetime.now(timezone.utc)
     timestamp = now.isoformat()
     messages = []
-
+    
+successful_prices = 0
     async with FutbinClient() as client:
         for name in PLAYERS:
             try:
@@ -84,6 +85,7 @@ async def main():
                         continue
 
                     if price <= 0:
+                        successful_prices += 1
                         continue
 
                     key = f"{card_id}"
@@ -148,15 +150,33 @@ async def main():
             except Exception as exc:
                 print(f"Search failed for {name}: {exc}")
 
+    
     HISTORY_FILE.write_text(
         json.dumps(history, ensure_ascii=False, indent=2)
     )
+
+    if successful_prices == 0:
+        error_message = (
+            "FC 27 monitor ERROR: No player prices were retrieved. "
+            "FUTBIN returned errors or no valid prices. Check GitHub Actions logs."
+        )
+        print(error_message)
+
+        try:
+            send_telegram(error_message)
+        except Exception as exc:
+            print(f"Could not send error notification: {type(exc).__name__}")
+
+        raise SystemExit(
+            "No valid prices retrieved; refusing to report a successful run."
+        )
 
     for message in messages:
         try:
             send_telegram(message)
         except Exception as exc:
             print(f"Telegram notification failed: {exc}")
+
 
 
 if __name__ == "__main__":
