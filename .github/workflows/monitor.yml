@@ -4,7 +4,7 @@ name: FC 27 PS5 Price Monitor
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/90 * * * *"
 
 permissions:
   contents: write
