@@ -56,7 +56,8 @@ async def main():
     timestamp = now.isoformat()
     messages = []
     
-successful_prices = 0
+    successful_prices = 0
+
     async with FutbinClient() as client:
         for name in PLAYERS:
             try:
